@@ -1,3 +1,5 @@
+#HCYT789 2020/11/03
+
 rm(list = ls())
 gc()
 library(stats)
@@ -39,7 +41,7 @@ ConvertComplate <- gsub("\\);\r", "", ConvertComplate)
 ConvertComplate <- gsub("'", "", ConvertComplate)
 cat(ConvertComplate)
 
-#分割價錢及成交量為兩個陣列
+#分割價錢及成交量為兩個陣列 
 SplitString <- strsplit(ConvertComplate, " ")
 
 Volume <- unlist(strsplit(SplitString[[1]][2], split = ","))
