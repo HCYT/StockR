@@ -14,16 +14,16 @@
 #------------------------初始化------------------------
 rm(list = ls())
 gc()
+library(TTR)
 library(data.table)
 library(tidyverse)
 library(quantmod)
 library(tidyquant)
-library(TTR)
 
 #change Folder
-setwd("E:/SourceCode/R/StockR/")
+setwd("D:/DEV/SourceCode/R/StockR/")
 #setting FileName
-FileName <- "E:/SourceCode/R/StockR/Data/StockData.csv"
+FileName <- "D:/DEV/SourceCode/R/StockR/Data/StockData.csv"
 #Loading File
 Data <-read.table(file = FileName,header = T,stringsAsFactors = F,sep = ",")
 
@@ -55,6 +55,7 @@ DateConvert <- function(date) {
   return(date)
 }
 StockData <- StockData %>% mutate(date = DateConvert(date))
+StockData <- StockData %>% na.omit()
 #轉換格式確定是數字型態
 StockData <- StockData %>%
   arrange(code, date) %>% group_by(code) %>%
@@ -81,6 +82,35 @@ StockData <- StockData %>%
     MA40=SMA(close,n=40),     #40日均線     
     MA60=SMA(close,n=60),     #60日均線  
   )
+
+#stoch / KD
+# StockData <-
+#   StockData %>% group_by(code) %>% arrange(code, date) %>%
+#   
+#   tq_mutate(
+#     select =  c("high", "low", "close"),
+#     mutate_fun = stoch,
+#     nFastK = 9,
+#     nFastD = 3,
+#     nSlowD = 3,
+#     maType=SMA
+#   ) %>% rename("RSV" = "fastK", "K" = "fastD", "D" = "stoch")
+# 
+# 
+# 
+# StockData <-
+#   StockData %>% group_by(code) %>% arrange(code, date) %>% mutate(
+#     p_min=runMin(low,n=9),
+#     p_max=runMax(high,n=9),
+#     RSV=((close-p_min)/(p_max-p_min))*100,
+#     K=50,
+#     D=50,
+#     K=lag(K,1)*(2/3)+(RSV)*(1/3),
+#     D=lag(D,1)*(2/3)+K*(1/3)
+#   )
+# 
+
+
 
 StockData <-
   StockData %>% group_by(code) %>% arrange(code, date) %>%
@@ -119,6 +149,9 @@ tradeTargetTable <- StockData %>%
     lag(OSC,1)<0,
     lag(OSC,2)<lag(OSC,1),
     lag(OSC,3)<lag(OSC,2),
+    #黃金交叉
+    lag(MA5,1)<lag(MA10,1),
+    MA5>MA10
   ) %>%  
   select(code, signalDate=date,inDate=Buy_date, inPrice=leadOpen1)%>%arrange(signalDate)
 
@@ -126,7 +159,7 @@ tradeTargetTable <- StockData %>%
 # 整理出場位置
 outSiteTable <- StockData %>%
   mutate(
-    outSite1=ifelse(DIFF<MACD & OSC < 0 & lag(OSC,1)>OSC & lag(OSC,3)>lag(OSC,2) ,1,0)
+    outSite1=ifelse( lag(MA5,1)>lag(MA10,1)& MA5<MA10  ,1,0)
   ) %>%  
   filter( outSite1 == 1 ) %>%
   select(code, outDate=date, outPrice=close)%>%
